@@ -1,0 +1,7 @@
+{
+  "name": "Fluentify AI Pronunciation Coach",
+  "description": "A sophisticated English pronunciation practice app that uses Gemini AI to analyze your speech and help you achieve native-level accuracy.",
+  "requestFramePermissions": [
+    "microphone"
+  ]
+}
