@@ -70,11 +70,9 @@ export default function App() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    // Check and request persistent storage
     if (navigator.storage && navigator.storage.persist) {
       navigator.storage.persist().then(persistent => {
         setIsStoragePersistent(persistent);
-        console.log(persistent ? "Storage will not be cleared" : "Storage might be cleared by browser");
       });
     }
 
@@ -175,11 +173,13 @@ export default function App() {
       const base64 = await blobToBase64(blob);
       const analysis = await analyzeSpeech(targetText, base64, difficulty);
       setResult(analysis);
-      setStatus(AppStatus.RESULT);
       
       if (exercise) {
+        setStatus(AppStatus.EXERCISE);
         const currentId = exercise.shuffledPhrases[exercise.currentPhraseIndex].id;
         updatePhraseScore(currentId, analysis.accuracyScore);
+      } else {
+        setStatus(AppStatus.RESULT);
       }
     } catch (err) {
       setErrorMessage("Phân tích AI thất bại.");
@@ -331,6 +331,8 @@ export default function App() {
     return 'text-rose-600';
   };
 
+  const isExerciseModeActive = !!exercise;
+
   return (
     <div className="min-h-screen flex flex-col bg-slate-50">
       <Header 
@@ -342,7 +344,7 @@ export default function App() {
       <main className="flex-grow max-w-4xl mx-auto w-full p-4 md:p-8 space-y-12">
         
         {/* EXERCISE MODE UI */}
-        {status === AppStatus.EXERCISE && exercise && (
+        {isExerciseModeActive && exercise && (
           <div className="animate-fade-in space-y-8">
             <div className="flex items-center justify-between">
               <div>
@@ -418,17 +420,34 @@ export default function App() {
                             <p className="text-slate-600 text-sm italic">"{result.transcription}"</p>
                             
                             {result.mispronouncedWords.length > 0 && (
-                              <div className="flex flex-wrap justify-center gap-2 mt-4">
-                                {result.mispronouncedWords.map((word, i) => (
-                                  <button key={i} onClick={() => handlePlayWord(word)} disabled={!!playingWord} className="flex items-center gap-2 px-3 py-1.5 bg-rose-600 text-white rounded-lg text-xs font-black shadow-sm hover:bg-rose-700 transition-all">
-                                    {playingWord === word ? <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M9.383 3.076A1 1 0 0110 4v12a1 1 0 01-1.707.707L4.586 13H2a1 1 0 01-1-1V8a1 1 0 011-1h2.586l3.707-3.707a1 1 0 011.09-.217zM14.657 2.929a1 1 0 011.414 0A9.972 9.972 0 0119 10a9.972 9.972 0 01-2.929 7.071 1 1 0 01-1.414-1.414A7.971 7.971 0 0017 10c0-2.21-.894-4.208-2.343-5.657a1 1 0 010-1.414zm-2.829 2.828a1 1 0 011.415 0A5.983 5.983 0 0115 10a5.984 5.984 0 01-1.757 4.243 1 1 0 01-1.415-1.415A3.984 3.984 0 0013 10a3.983 3.983 0 00-1.172-2.828 1 1 0 010-1.415z" clipRule="evenodd" /></svg>}
-                                    {word}
-                                  </button>
-                                ))}
+                              <div className="space-y-2">
+                                <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Từ cần luyện thêm (bấm để nghe mẫu)</h3>
+                                <div className="flex flex-wrap justify-center gap-2 mt-2">
+                                  {result.mispronouncedWords.map((word, i) => (
+                                    <button key={i} onClick={() => handlePlayWord(word)} disabled={!!playingWord} className="flex items-center gap-2 px-3 py-1.5 bg-rose-600 text-white rounded-lg text-xs font-black shadow-sm hover:bg-rose-700 transition-all active:scale-95">
+                                      {playingWord === word ? <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M9.383 3.076A1 1 0 0110 4v12a1 1 0 01-1.707.707L4.586 13H2a1 1 0 01-1-1V8a1 1 0 011-1h2.586l3.707-3.707a1 1 0 011.09-.217zM14.657 2.929a1 1 0 011.414 0A9.972 9.972 0 0119 10a9.972 9.972 0 01-2.929 7.071 1 1 0 01-1.414-1.414A7.971 7.971 0 0017 10c0-2.21-.894-4.208-2.343-5.657a1 1 0 010-1.414zm-2.829 2.828a1 1 0 011.415 0A5.983 5.983 0 0115 10a5.984 5.984 0 01-1.757 4.243 1 1 0 01-1.415-1.415A3.984 3.984 0 0013 10a3.983 3.983 0 00-1.172-2.828 1 1 0 010-1.415z" clipRule="evenodd" /></svg>}
+                                      {word}
+                                    </button>
+                                  ))}
+                                </div>
                               </div>
                             )}
 
-                            <button onClick={nextExercisePhrase} className="w-full py-4 bg-emerald-600 text-white rounded-xl font-black hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-100">Tiếp tục câu tiếp theo</button>
+                            <div className="grid grid-cols-1 gap-4 mt-6">
+                              <div className="p-4 bg-indigo-50/50 rounded-xl border border-indigo-100 text-left">
+                                <h4 className="font-black text-indigo-900 text-[9px] uppercase tracking-widest mb-1">Nhận xét của Coach</h4>
+                                <p className="text-slate-700 text-xs whitespace-pre-line leading-relaxed font-medium">{result.feedback}</p>
+                              </div>
+                            </div>
+
+                            <div className="flex gap-3 mt-4">
+                              <button onClick={() => setResult(null)} className="flex-grow py-4 px-6 bg-indigo-600 text-white rounded-xl font-black text-sm shadow-md hover:bg-indigo-700 transition-all active:scale-[0.98]">
+                                Nói lại câu này
+                              </button>
+                              <button onClick={nextExercisePhrase} className="flex-grow py-4 px-6 bg-emerald-600 text-white rounded-xl font-black text-sm hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-100">
+                                Tiếp tục
+                              </button>
+                            </div>
                           </div>
                         ) : (
                           <button onClick={status === AppStatus.RECORDING ? stopRecording : startRecording} className={`group relative flex items-center justify-center w-24 h-24 rounded-full text-white shadow-2xl transition-all active:scale-95 ${status === AppStatus.RECORDING ? 'bg-rose-500' : 'bg-indigo-600 hover:bg-indigo-700'}`}>
@@ -447,7 +466,7 @@ export default function App() {
         )}
 
         {/* MAIN INTERFACE */}
-        {status !== AppStatus.EXERCISE && (
+        {!isExerciseModeActive && (
           <div className="space-y-12">
             <section className="animate-fade-in space-y-4">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -613,7 +632,7 @@ export default function App() {
         )}
       </main>
 
-      {/* SAVE MODAL */}
+      {/* MODALS RENDERED INDEPENDENTLY */}
       {showSaveModal && (
         <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fade-in">
           <div className="bg-white w-full max-w-md rounded-3xl shadow-2xl p-8 animate-scale-in">
@@ -636,7 +655,6 @@ export default function App() {
         </div>
       )}
 
-      {/* SETTINGS / DATA MANAGEMENT MODAL */}
       {showSettings && (
         <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fade-in">
           <div className="bg-white w-full max-w-lg rounded-3xl shadow-2xl p-8 animate-scale-in">
@@ -683,16 +701,6 @@ export default function App() {
               </div>
 
               <input type="file" ref={fileInputRef} onChange={handleImport} className="hidden" accept=".json" />
-
-              <div className="pt-4 text-center">
-                <button onClick={() => { 
-                  if (confirm("Xóa toàn bộ thư viện? Hành động này không thể hoàn tác!")) {
-                    setSavedPhrases([]);
-                    localStorage.removeItem('fluentify_phrases');
-                    setShowSettings(false);
-                  }
-                }} className="text-rose-500 text-[10px] font-black uppercase tracking-[0.2em] hover:underline">Xóa sạch toàn bộ thư viện</button>
-              </div>
             </div>
           </div>
         </div>
